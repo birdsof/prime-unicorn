@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Prime Unicorn</title>
+
+    <!-- update the version number as needed -->
+    <script defer src="/__/firebase/9.9.0/firebase-app-compat.js"></script>
+    <!-- include only the Firebase features as you need -->
+    <script defer src="/__/firebase/9.9.0/firebase-database-compat.js"></script>
+    <!-- 
+      initialize the SDK after all desired features are loaded, set useEmulator to false
+      to avoid connecting the SDK to running emulators.
+    -->
+    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+
+    <style media="screen">
+    </style>
+  </head>
+  <body>
+      <img src="https://i.pinimg.com/originals/b9/f8/c9/b9f8c9bb1b5e4813d56e697f124eff8b.png" />
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var hash = window.location.hash.substring(1);
+	if (!hash) {
+            hash = 'unicorn';
+	}
+        firebase.database().ref('/' + hash).on('value', snapshot => {
+            alert(hash);
+        });
+
+      });
+    </script>
+  </body>
+</html>
