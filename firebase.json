@@ -6,6 +6,15 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "redirects":[
+      {
+        "source": "/",
+        "destination": "/index.html",
+        "type": 301
+      }
+    ],
+    "trailingSlash": false,
+    "cleanUrls": true,
     "rewrites": [
       {
         "source": "**",
