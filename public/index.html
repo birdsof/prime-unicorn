@@ -13,10 +13,24 @@
       <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
 
     <style media="screen">
+        body {
+            max-width: 500px;
+            margin: 0 auto;
+            background:slategray;
+        }
+        .center-title {
+            text-align: center;
+            color: whitesmoke;
+            font-family: sans-serif;
+        }
+        table {
+            width: 500px;
+            clear: both;
+            table-layout: fixed;
+        }
         table, th, td {
           border: 1px solid whitesmoke;
           border-collapse: collapse;
-          background-color: slategray;
         }
         td {
             width: 100px;
@@ -26,11 +40,44 @@
             font-size: 50px;
             text-align: center;
         }
+        #purple {
+            transform: scaleX(-1); 
+            filter: invert(71%) sepia(44%) saturate(672%) hue-rotate(214deg) brightness(89%) contrast(91%);
+        }
+        .left {
+            float: left;
+        }
+        #green {
+            filter: invert(94%) sepia(11%) saturate(1649%) hue-rotate(28deg) brightness(99%) contrast(98%);
+            float: right;
+        }
+        #purplescore {
+            width: 200px;
+            float: left;
+            text-align: center;
+            color: #c395da;
+        }
+        #greenscore {
+            width: 200px;
+            float: right;
+            text-align: center;
+            color: #c4f57f;
+        }
+        #scores {
+            clear: both;
+        }
     </style>
   </head>
   <body>
-    <img height="200px" src="https://static.thenounproject.com/png/1112380-200.png" id="purple" style="transform: scaleX(-1); filter: invert(71%) sepia(44%) saturate(672%) hue-rotate(214deg) brightness(89%) contrast(91%);">
-    <img height="200px" src="https://static.thenounproject.com/png/1112380-200.png" id="green" style="filter: invert(94%) sepia(11%) saturate(1649%) hue-rotate(28deg) brightness(99%) contrast(98%);">
+    <h1 class="center-title">
+            Prime Unicorns
+        </h1>
+        <img height="200px" src="https://static.thenounproject.com/png/1112380-200.png" id="purple" class="left">
+        <img height="200px" src="https://static.thenounproject.com/png/1112380-200.png" id="green">
+    <div id="scores">
+        <h2 id="purplescore">0</h2>
+        <h2 id="greenscore">0</h2>
+    </div>
     <table>
         <tr>
             <td id="0"></td>
@@ -71,26 +118,80 @@
     <script>
 
 $(function () {
+
+function isPrime(n) {
+    if (!Number.isInteger(n) || n < 2) {
+        return false;
+    }
+    for (let i = 2; i <= n / 2; i++) {
+        if (n % i === 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
     var username = 'Amin';
     var localdata = {
         state: 0,
+        level: 0,
         players: {
             'Amin': 0,
             'Maura': 0,
         },
         board: [],
-
     };
 
-    for (let i = 0; i < 25; i++) {
-        localdata.board[i] = Math.floor(Math.random() * 2) + 1;
+    function generateBoard() {
+        var maxNum = 2 + localdata.level * 0.5;
+        for (let i = 0; i < 25; i++) {
+            localdata.board[i] = Math.floor(Math.random() * maxNum) + 1;
+        }
     }
 
-    $('td').each(function() {
-        $(this).text(localdata.board[parseInt($(this).attr('id'))]);
-        $(this).click(function() {
+    function isRoundOver() {
+        for (let i = 0; i < 25; i++) {
+            if (isPrime(localdata.board[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
 
-            alert($(this).attr('id'));
+    function bindBoard() {
+        $('td').each(function() {
+            var index = parseInt($(this).attr('id'));
+            if (localdata.board[index] == 'Amin') {
+                $(this).html('<img height="75px" src="https://static.thenounproject.com/png/1112380-200.png" id="purple">');
+            } else {
+                $(this).text(localdata.board[index]);
+            }
+        });
+    }
+    function bindScores() {
+        $('#purplescore').text(localdata.players['Amin']);
+        $('#greenscore').text(localdata.players['Maura']);
+    }
+
+    generateBoard();
+    bindBoard();
+    $('td').each(function() {
+        $(this).click(function() {
+            var index = $(this).attr('id');
+            if (isPrime(localdata.board[index])) {
+                localdata.players[username] += 1;
+                localdata.board[index] = 'Amin';
+            } else {
+                alert(localdata.board[index] + ' is not prime!')
+                localdata.board[index] = '';
+            }
+            
+            if (isRoundOver()) {
+                localdata.level += 1;
+                generateBoard();
+            }
+            bindBoard();
+            bindScores();
         });
     })
 
