@@ -46,7 +46,7 @@
         }
         #purple {
             transform: scaleX(-1); 
-            filter: invert(71%) sepia(44%) saturate(672%) hue-rotate(214deg) brightness(89%) contrast(91%);
+            filter: invert(81%) sepia(44%) saturate(3405%) hue-rotate(213deg) brightness(101%) contrast(103%)
         }
         .left {
             float: left;
@@ -61,7 +61,7 @@
             width: 125px;
             float: left;
             text-align: center;
-            color: #c395da;
+            color: #ff99ff;
         }
         #greenscore {
             width: 125px;
@@ -130,9 +130,29 @@
             <td id="24"></td>
         </tr>
     </table>
+    <h4 id="topscore" class="center-title">All-time high score: <span id="highscore">0</span></h4>
     <script>
 
 $(function () {
+
+var playerid = '' + Math.floor(Math.random() * 10000);
+var localdata;
+
+function nullToEmpty(serverdata) {
+    if (!serverdata) {
+        serverdata = {};
+    }
+    if (!serverdata.ready) {
+        serverdata.ready = [];
+    }
+    return serverdata;
+}
+
+function transact(func) {
+    ref.transaction(function(serverdata) {
+        return func(nullToEmpty(serverdata));
+    });
+}
 
 function isPrime(n) {
     if (!Number.isInteger(n) || n < 2) {
@@ -146,39 +166,18 @@ function isPrime(n) {
     return true;
 }
 
-var playerid = '' + Math.floor(Math.random() * 10000);
-/* state
- 1 = ready to start round X? show # players
- 2 = waiting for Y to start
- 3 = gameplay -> 1
-
-TODO
-On disconnect deletes player
-Modal confirmation at each round
-
-*/
-
-var localdata = {
-    state: 0,
-    level: 0,
-    players: {
-        'otherplayerid': 0,
-    },
-    board: [],
-
-};
-localdata.players[playerid] = 0;
-
-function generateBoard() {
+function createBoard() {
+    var board = [];
     var maxNum = 2 + localdata.level * 0.75;
     for (let i = 0; i < 25; i++) {
-        localdata.board[i] = Math.floor(Math.random() * maxNum) + 1;
+        board[i] = Math.floor(Math.random() * maxNum) + 1;
     }
+    return board;
 }
 
-function isRoundOver() {
-    for (let i = 0; i < 25; i++) {
-        if (isPrime(localdata.board[i])) {
+function isRoundOver(board) {
+    for (let i = 0; i < board.length; i++) {
+        if (isPrime(board[i])) {
             return false;
         }
     }
@@ -198,11 +197,11 @@ function bindBoard() {
     });
 }
 function bindScores() {
+    $('#purplescore').text(localdata.players[playerid]);
+    $('#greenscore').text(0);
     for (const [id, score] of Object.entries(localdata.players)) {
-      if (id === playerid) {
-            $('#purplescore').text(score);
-        } else {
-            $('#greenscore').text(score);
+      if (id !== playerid) {
+        $('#greenscore').text(score);
         }
     }
 }
@@ -218,46 +217,169 @@ function showNotPrimeDialog(number) {
     });
 }
 
-var startRoundDialog;
+var startDialog;
 
 function bindStartRoundDialog() {
-    if (startRoundDialog) {
-
+    if (startDialog) {
+        startDialog.dialog('close');
+        startDialog = null;
     }
+    if (!isRoundOver(localdata.board)) {
+        return;
+    }
+    if (localdata.ready.indexOf(playerid) > -1) {
+        if (Object.entries(localdata.players).length > 1) {
+            startDialog = $('<h4>Waiting for other player to start...</h4>');
+            startDialog.dialog({
+                modal: true,
+            });
+        }
+        return; 
+    }
+    var gametype;
+    if (Object.entries(localdata.players).length == 1) {
+        gametype = "single player"
+    } else {
+        gametype = "multiplayer"
+    }
+    startDialog = $('<div><h4>Ready to start playing ' + gametype + ' on  level ' + (localdata.level + 1) + '?</h4></div>');
+    startDialog.dialog({
+        modal: true,
+        buttons: {
+            Start: function() {
+                transact(function (serverdata) {
+                    if (serverdata.ready.indexOf(playerid) == -1) {
+                        serverdata.ready.push(playerid);
+                    }
+                    if (serverdata.ready.length == Object.entries(serverdata.players).length) {
+                        serverdata.board = createBoard();
+                        serverdata.ready = [];
+                        serverdata.level += 1;
+                    }
+                    return serverdata;
+                });
+                $( this ).dialog('close');
+            }
+        }
+    });
 }
 
 $('td').each(function() {
     $(this).click(function() {
         var index = $(this).attr('id');
-        if (Number.isInteger(localdata.board[index])) {
-            if (isPrime(localdata.board[index])) {
-                localdata.players[playerid] += 1;
-                localdata.board[index] = playerid;
-            } else {
-                showNotPrimeDialog(localdata.board[index]);
-                localdata.board[index] = '';
+
+        if (!Number.isInteger(localdata.board[index])) {
+            return; // Not a number, short circuit
+        }
+
+        transact(function (serverdata) {
+            if (Number.isInteger(serverdata.board[index])) {
+                if (isPrime(serverdata.board[index])) {
+                    serverdata.players[playerid] += 1;
+                    updateHighScore(serverdata.players[playerid]); 
+                    serverdata.board[index] = playerid;
+                } else {
+                    showNotPrimeDialog(serverdata.board[index]);
+                    serverdata.board[index] = '';
+                }
             }
-        }
-        if (isRoundOver()) {
-            localdata.level += 1;
-            generateBoard();
-        }
-        bindBoard();
-        bindScores();
+            return serverdata;
+        });
     });
 })
 
 
-generateBoard();
-bindBoard();
+var otherplayerid;
+var otherplayerref;
+
+function removeWhenLost(snapshot) {
+    if (!snapshot.val()) {
+        transact(function(serverdata) {
+            delete serverdata.players[otherplayerid];
+            // Restart game with opponent disconnects
+            serverdata.level = 0
+            for (let i = 0; i < 25; i++) {
+                serverdata.board[i] = '';
+            }
+            serverdata.ready = [];
+            serverdata.players[playerid] = 0;
+            return serverdata;
+        });
+    }
+}
+
+function updatePresenceObserver() {
+    Object.keys(localdata.players).forEach(function(id) {
+        if (id != playerid && otherplayerid != id) {
+            if (otherplayerref) {
+                otherplayerref.off('value', removeWhenLost);
+            }
+            otherplayerid = id;
+            otherplayerref = firebase.database().ref('/player/' + otherplayerid);
+            otherplayerref.on('value', removeWhenLost);
+        }
+    });
+}
 
 var hash = window.location.hash.substring(1);
 if (!hash) {
     hash = 'unicorn';
 }
 
-firebase.database().ref('/' + hash).on('value', serverdata => {
+var ref = firebase.database().ref('/game/' + hash);
+firebase.database().ref('/player/' + playerid).set({p: true});
+firebase.database().ref('/player/' + playerid).onDisconnect().remove();
 
+var highscore = 0;
+firebase.database().ref('/highscore').on('value', function(snapshot) {
+    if (!snapshot) {
+        highscore = 0;
+    } else {
+        highscore = snapshot.val();
+    }
+    $('#highscore').text(highscore);
+});
+
+function updateHighScore(score) {
+    if (score > highscore) {
+        firebase.database().ref('/highscore').set(score);
+    }
+}
+
+function updateGame() {
+    bindStartRoundDialog();
+    bindBoard();
+    bindScores();
+}
+
+transact(function (serverdata) {
+    if (!serverdata.board) {
+        serverdata.board = [];
+        for (let i = 0; i < 25; i++) {
+            serverdata.board[i] = '';
+        }
+    }
+    if (!serverdata.players) {
+        serverdata.players = {};
+    }
+    var numPlayers = Object.entries(serverdata.players).length;
+    if (numPlayers == 0) {
+        serverdata.level = 0;
+    }
+    if (numPlayers == 2) {
+        // 2 players already playing, go to another room
+        window.location.hash = Math.floor(Math.random() * 100);
+        window.location.reload();
+    } else {
+        serverdata.players[playerid] = 0;
+        ref.on('value', function(snapshot) {
+            localdata = nullToEmpty(snapshot.val());
+            console.log(JSON.stringify(localdata));
+            updatePresenceObserver();
+            updateGame();
+        });
+    }
+    return serverdata;
 });
 
 });
