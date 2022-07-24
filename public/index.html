@@ -14,8 +14,8 @@
 
     <style media="screen">
         body {
-            max-width: 500px;
-            margin: 0 auto;
+            max-width: 360px;
+            margin: auto;
             background:slategray;
         }
         .center-title {
@@ -24,7 +24,8 @@
             font-family: sans-serif;
         }
         table {
-            width: 500px;
+            width: 360px;
+            height: 360px;
             clear: both;
             table-layout: fixed;
         }
@@ -33,10 +34,10 @@
           border-collapse: collapse;
         }
         td {
-            width: 100px;
+            width: 65px;
             font-family: sans-serif;
             color: whitesmoke;
-            height: 100px;
+            height: 65px;
             font-size: 50px;
             text-align: center;
         }
@@ -52,13 +53,13 @@
             float: right;
         }
         #purplescore {
-            width: 200px;
+            width: 125px;
             float: left;
             text-align: center;
             color: #c395da;
         }
         #greenscore {
-            width: 200px;
+            width: 125px;
             float: right;
             text-align: center;
             color: #c4f57f;
@@ -70,10 +71,10 @@
   </head>
   <body>
     <h1 class="center-title">
-            Prime Unicorns
+            Prime Unicorn
         </h1>
-        <img height="200px" src="https://static.thenounproject.com/png/1112380-200.png" id="purple" class="left">
-        <img height="200px" src="https://static.thenounproject.com/png/1112380-200.png" id="green">
+        <img height="125px" src="https://static.thenounproject.com/png/1112380-200.png" id="purple" class="left">
+        <img height="125px" src="https://static.thenounproject.com/png/1112380-200.png" id="green">
     <div id="scores">
         <h2 id="purplescore">0</h2>
         <h2 id="greenscore">0</h2>
@@ -162,7 +163,7 @@ function isPrime(n) {
         $('td').each(function() {
             var index = parseInt($(this).attr('id'));
             if (localdata.board[index] == 'Amin') {
-                $(this).html('<img height="75px" src="https://static.thenounproject.com/png/1112380-200.png" id="purple">');
+                $(this).html('<img height="50px" src="https://static.thenounproject.com/png/1112380-200.png" id="purple">');
             } else {
                 $(this).text(localdata.board[index]);
             }
@@ -178,14 +179,15 @@ function isPrime(n) {
     $('td').each(function() {
         $(this).click(function() {
             var index = $(this).attr('id');
-            if (isPrime(localdata.board[index])) {
-                localdata.players[username] += 1;
-                localdata.board[index] = 'Amin';
-            } else {
-                alert(localdata.board[index] + ' is not prime!')
-                localdata.board[index] = '';
+            if (Number.isInteger(localdata.board[index])) {
+                if (isPrime(localdata.board[index])) {
+                    localdata.players[username] += 1;
+                    localdata.board[index] = 'Amin';
+                } else {
+                    alert(localdata.board[index] + ' is not prime!')
+                    localdata.board[index] = '';
+                }
             }
-            
             if (isRoundOver()) {
                 localdata.level += 1;
                 generateBoard();
