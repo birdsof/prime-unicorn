@@ -10,7 +10,10 @@
       <script src="/__/firebase/7.14.2/firebase-analytics.js"></script>
       <script src="/__/firebase/init.js"></script>
       <script src="/__/firebase/7.14.2/firebase-database.js"></script>
-      <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.13.2/themes/smoothness/jquery-ui.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.13.2/jquery-ui.min.js"></script>
 
     <style media="screen">
         body {
@@ -50,6 +53,8 @@
         }
         #green {
             filter: invert(94%) sepia(11%) saturate(1649%) hue-rotate(28deg) brightness(99%) contrast(98%);
+        }
+        .right {
             float: right;
         }
         #purplescore {
@@ -67,6 +72,15 @@
         #scores {
             clear: both;
         }
+        .ui-dialog-titlebar {
+          display: none;
+        }
+        .ui-corner-all {
+            border-radius: 10px;
+        }
+        .ui-widget-content {
+            border: none;
+        }
     </style>
   </head>
   <body>
@@ -74,7 +88,7 @@
             Prime Unicorn
         </h1>
         <img height="125px" src="https://static.thenounproject.com/png/1112380-200.png" id="purple" class="left">
-        <img height="125px" src="https://static.thenounproject.com/png/1112380-200.png" id="green">
+        <img height="125px" src="https://static.thenounproject.com/png/1112380-200.png" id="green" class="right">
     <div id="scores">
         <h2 id="purplescore">0</h2>
         <h2 id="greenscore">0</h2>
@@ -132,90 +146,125 @@ function isPrime(n) {
     return true;
 }
 
-    var username = 'Amin';
-    var localdata = {
-        state: 0,
-        level: 0,
-        players: {
-            'Amin': 0,
-            'Maura': 0,
-        },
-        board: [],
-    };
+var playerid = '' + Math.floor(Math.random() * 10000);
+/* state
+ 1 = ready to start round X? show # players
+ 2 = waiting for Y to start
+ 3 = gameplay -> 1
 
-    function generateBoard() {
-        var maxNum = 2 + localdata.level * 0.5;
-        for (let i = 0; i < 25; i++) {
-            localdata.board[i] = Math.floor(Math.random() * maxNum) + 1;
+TODO
+On disconnect deletes player
+Modal confirmation at each round
+
+*/
+
+var localdata = {
+    state: 0,
+    level: 0,
+    players: {
+        'otherplayerid': 0,
+    },
+    board: [],
+
+};
+localdata.players[playerid] = 0;
+
+function generateBoard() {
+    var maxNum = 2 + localdata.level * 0.75;
+    for (let i = 0; i < 25; i++) {
+        localdata.board[i] = Math.floor(Math.random() * maxNum) + 1;
+    }
+}
+
+function isRoundOver() {
+    for (let i = 0; i < 25; i++) {
+        if (isPrime(localdata.board[i])) {
+            return false;
         }
     }
+    return true;
+}
 
-    function isRoundOver() {
-        for (let i = 0; i < 25; i++) {
-            if (isPrime(localdata.board[i])) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    function bindBoard() {
-        $('td').each(function() {
-            var index = parseInt($(this).attr('id'));
-            if (localdata.board[index] == 'Amin') {
-                $(this).html('<img height="50px" src="https://static.thenounproject.com/png/1112380-200.png" id="purple">');
-            } else {
-                $(this).text(localdata.board[index]);
-            }
-        });
-    }
-    function bindScores() {
-        $('#purplescore').text(localdata.players['Amin']);
-        $('#greenscore').text(localdata.players['Maura']);
-    }
-
-    generateBoard();
-    bindBoard();
+function bindBoard() {
     $('td').each(function() {
-        $(this).click(function() {
-            var index = $(this).attr('id');
-            if (Number.isInteger(localdata.board[index])) {
-                if (isPrime(localdata.board[index])) {
-                    localdata.players[username] += 1;
-                    localdata.board[index] = 'Amin';
-                } else {
-                    alert(localdata.board[index] + ' is not prime!')
-                    localdata.board[index] = '';
-                }
-            }
-            if (isRoundOver()) {
-                localdata.level += 1;
-                generateBoard();
-            }
-            bindBoard();
-            bindScores();
-        });
-    })
-
-    var hash = window.location.hash.substring(1);
-    if (!hash) {
-        hash = 'unicorn';
+        var index = parseInt($(this).attr('id'));
+        if (Number.isInteger(localdata.board[index]) || localdata.board[index] == '') {
+            $(this).text(localdata.board[index]);
+        } else if (localdata.board[index] == playerid) {
+            $(this).html('<img height="50px" src="https://static.thenounproject.com/png/1112380-200.png" id="purple">');
+        } else {
+            $(this).html('<img height="50px" src="https://static.thenounproject.com/png/1112380-200.png" id="green">');
+        }
+    });
+}
+function bindScores() {
+    for (const [id, score] of Object.entries(localdata.players)) {
+      if (id === playerid) {
+            $('#purplescore').text(score);
+        } else {
+            $('#greenscore').text(score);
+        }
     }
-/*    firebase.database().ref('/' + hash).on('value', serverdata => {
+}
 
-    });*/
+function showNotPrimeDialog(number) {
+    $( "<h4>" + number + ' is not prime!' + "</h4>" ).dialog({
+      modal: true,
+      buttons: {
+        Continue: function() {
+          $( this ).dialog('close');
+        }
+      }
+    });
+}
+
+var startRoundDialog;
+
+function bindStartRoundDialog() {
+    if (startRoundDialog) {
+
+    }
+}
+
+$('td').each(function() {
+    $(this).click(function() {
+        var index = $(this).attr('id');
+        if (Number.isInteger(localdata.board[index])) {
+            if (isPrime(localdata.board[index])) {
+                localdata.players[playerid] += 1;
+                localdata.board[index] = playerid;
+            } else {
+                showNotPrimeDialog(localdata.board[index]);
+                localdata.board[index] = '';
+            }
+        }
+        if (isRoundOver()) {
+            localdata.level += 1;
+            generateBoard();
+        }
+        bindBoard();
+        bindScores();
+    });
+})
+
+
+generateBoard();
+bindBoard();
+
+var hash = window.location.hash.substring(1);
+if (!hash) {
+    hash = 'unicorn';
+}
+
+firebase.database().ref('/' + hash).on('value', serverdata => {
+
+});
 
 });
 
 
 
-/* state
- 0 = name entry
- 1 = ready to start round X? | wait for player to join
- 2 = waiting for Y to start
- 3 = starting round X in 3, 2, 1..
- 4 = gameplay -> 1
-*/
+
     </script>
   </body>
 </html>
