@@ -5,31 +5,114 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Prime Unicorn</title>
 
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/9.9.0/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/9.9.0/firebase-database-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+
+      <script src="/__/firebase/7.14.2/firebase-app.js"></script>
+      <script src="/__/firebase/7.14.2/firebase-analytics.js"></script>
+      <script src="/__/firebase/init.js"></script>
+      <script src="/__/firebase/7.14.2/firebase-database.js"></script>
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
 
     <style media="screen">
+        table, th, td {
+          border: 1px solid whitesmoke;
+          border-collapse: collapse;
+          background-color: slategray;
+        }
+        td {
+            width: 100px;
+            font-family: sans-serif;
+            color: whitesmoke;
+            height: 100px;
+            font-size: 50px;
+            text-align: center;
+        }
     </style>
   </head>
   <body>
-    <img height="500" src="https://i.pinimg.com/originals/b9/f8/c9/b9f8c9bb1b5e4813d56e697f124eff8b.png" />
+    <img height="200px" src="https://static.thenounproject.com/png/1112380-200.png" id="purple" style="transform: scaleX(-1); filter: invert(71%) sepia(44%) saturate(672%) hue-rotate(214deg) brightness(89%) contrast(91%);">
+    <img height="200px" src="https://static.thenounproject.com/png/1112380-200.png" id="green" style="filter: invert(94%) sepia(11%) saturate(1649%) hue-rotate(28deg) brightness(99%) contrast(98%);">
+    <table>
+        <tr>
+            <td id="0"></td>
+            <td id="1"></td>
+            <td id="2"></td>
+            <td id="3"></td>
+            <td id="4"></td>
+        </tr>
+        <tr>
+            <td id="5"></td>
+            <td id="6"></td>
+            <td id="7"></td>
+            <td id="8"></td>
+            <td id="9"></td>
+        </tr>
+        <tr>
+            <td id="10"></td>
+            <td id="11"></td>
+            <td id="12"></td>
+            <td id="13"></td>
+            <td id="14"></td>
+        </tr>
+        <tr>
+            <td id="15"></td>
+            <td id="16"></td>
+            <td id="17"></td>
+            <td id="18"></td>
+            <td id="19"></td>
+        </tr>
+        <tr>
+            <td id="20"></td>
+            <td id="21"></td>
+            <td id="22"></td>
+            <td id="23"></td>
+            <td id="24"></td>
+        </tr>
+    </table>
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        var hash = window.location.hash.substring(1);
-	if (!hash) {
-            hash = 'unicorn';
-	}
-        firebase.database().ref('/' + hash).on('value', snapshot => {
-            alert(hash);
+
+$(function () {
+    var username = 'Amin';
+    var localdata = {
+        state: 0,
+        players: {
+            'Amin': 0,
+            'Maura': 0,
+        },
+        board: [],
+
+    };
+
+    for (let i = 0; i < 25; i++) {
+        localdata.board[i] = Math.floor(Math.random() * 2) + 1;
+    }
+
+    $('td').each(function() {
+        $(this).text(localdata.board[parseInt($(this).attr('id'))]);
+        $(this).click(function() {
+
+            alert($(this).attr('id'));
         });
-      });
+    })
+
+    var hash = window.location.hash.substring(1);
+    if (!hash) {
+        hash = 'unicorn';
+    }
+/*    firebase.database().ref('/' + hash).on('value', serverdata => {
+
+    });*/
+
+});
+
+
+
+/* state
+ 0 = name entry
+ 1 = ready to start round X? | wait for player to join
+ 2 = waiting for Y to start
+ 3 = starting round X in 3, 2, 1..
+ 4 = gameplay -> 1
+*/
     </script>
   </body>
 </html>
