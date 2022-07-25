@@ -43,6 +43,7 @@
             height: 65px;
             font-size: 50px;
             text-align: center;
+            touch-action: manipulation;
         }
         #purple {
             transform: scaleX(-1); 
@@ -242,7 +243,7 @@ function bindStartRoundDialog() {
     } else {
         gametype = "multiplayer"
     }
-    startDialog = $('<div><h4>Ready to start playing ' + gametype + ' on  level ' + (localdata.level + 1) + '?</h4></div>');
+    startDialog = $('<div><h4>Ready to start ' + gametype + ' on level ' + (localdata.level + 1) + '?</h4></div>');
     startDialog.dialog({
         modal: true,
         buttons: {
