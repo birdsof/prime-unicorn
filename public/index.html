@@ -228,6 +228,16 @@ function bindStartRoundDialog() {
     if (!isRoundOver(localdata.board)) {
         return;
     }
+    // Don't prompt after first level for single player
+    if (localdata.level > 0 && Object.entries(localdata.players).length == 1) {
+        transact(function (serverdata) {
+            serverdata.board = createBoard();
+            serverdata.ready = [];
+            serverdata.level += 1;
+            return serverdata;
+        });
+        return;
+    }
     if (localdata.ready.indexOf(playerid) > -1) {
         if (Object.entries(localdata.players).length > 1) {
             startDialog = $('<h4>Waiting for other player to start...</h4>');
