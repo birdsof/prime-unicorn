@@ -167,9 +167,9 @@ function isPrime(n) {
     return true;
 }
 
-function createBoard() {
+function createBoard(level) {
     var board = [];
-    var maxNum = 2 + localdata.level * 0.75;
+    var maxNum = 2 + level * 0.75;
     for (let i = 0; i < 25; i++) {
         board[i] = Math.floor(Math.random() * maxNum) + 1;
     }
@@ -263,7 +263,7 @@ function bindStartRoundDialog() {
                         serverdata.ready.push(playerid);
                     }
                     if (serverdata.ready.length == Object.entries(serverdata.players).length) {
-                        serverdata.board = createBoard();
+                        serverdata.board = createBoard(localdata.level);
                         serverdata.ready = [];
                         serverdata.level += 1;
                     }
@@ -299,47 +299,13 @@ $('td').each(function() {
     });
 })
 
-
-var otherplayerid;
-var otherplayerref;
-
-function removeWhenLost(snapshot) {
-    if (!snapshot.val()) {
-        transact(function(serverdata) {
-            delete serverdata.players[otherplayerid];
-            // Restart game with opponent disconnects
-            serverdata.level = 0
-            for (let i = 0; i < 25; i++) {
-                serverdata.board[i] = '';
-            }
-            serverdata.ready = [];
-            serverdata.players[playerid] = 0;
-            return serverdata;
-        });
-    }
-}
-
-function updatePresenceObserver() {
-    Object.keys(localdata.players).forEach(function(id) {
-        if (id != playerid && otherplayerid != id) {
-            if (otherplayerref) {
-                otherplayerref.off('value', removeWhenLost);
-            }
-            otherplayerid = id;
-            otherplayerref = firebase.database().ref('/player/' + otherplayerid);
-            otherplayerref.on('value', removeWhenLost);
-        }
-    });
-}
-
 var hash = window.location.hash.substring(1);
 if (!hash) {
     hash = 'unicorn';
 }
 
 var ref = firebase.database().ref('/game/' + hash);
-firebase.database().ref('/player/' + playerid).set({p: true});
-firebase.database().ref('/player/' + playerid).onDisconnect().remove();
+ref.onDisconnect().remove();
 
 var highscore = 0;
 firebase.database().ref('/highscore').on('value', function(snapshot) {
@@ -361,6 +327,16 @@ function updateGame() {
     bindStartRoundDialog();
     bindBoard();
     bindScores();
+}
+
+function restartGame() {
+    transact(function (serverdata) {
+        serverdata.level = 0;
+        serverdata.players = {};
+        serverdata.players[playerid] = 0;
+        serverdata.board = createBoard(0);
+        return serverdata;
+    });
 }
 
 transact(function (serverdata) {
@@ -386,8 +362,11 @@ transact(function (serverdata) {
         ref.on('value', function(snapshot) {
             localdata = nullToEmpty(snapshot.val());
             console.log(JSON.stringify(localdata));
-            updatePresenceObserver();
-            updateGame();
+            if (localdata.players) {
+                updateGame();
+            } else {
+                restartGame(); // Other player left, deleting the game.
+            }
         });
     }
     return serverdata;
