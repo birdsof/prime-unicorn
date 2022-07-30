@@ -231,7 +231,7 @@ function bindStartRoundDialog() {
     // Don't prompt after first level for single player
     if (localdata.level > 0 && Object.entries(localdata.players).length == 1) {
         transact(function (serverdata) {
-            serverdata.board = createBoard();
+            serverdata.board = createBoard(localdata.level);
             serverdata.ready = [];
             serverdata.level += 1;
             return serverdata;
